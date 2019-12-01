@@ -1,0 +1,5 @@
+**/*.class
+**/.gradle*
+**/META-INF
+**/.vscode*
+**/build
