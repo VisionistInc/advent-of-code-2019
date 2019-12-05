@@ -39,9 +39,9 @@ def puzzle2(opcode):
 
 
 if __name__ == "__main__":
-    input = open('input.txt', 'r')
-    for line in input.readlines():
-        opcode = [int(x) for x in line.split(',')
+    inputText = open('input.txt', 'r')
+    for line in inputText.readlines():
+        opcode = [int(x) for x in line.split(',')]
         answer = {"puzzle_1_answer": puzzle1(
             opcode), "puzzle_2_answer": puzzle2(opcode)}
         with open('answers.json', 'w') as out:
