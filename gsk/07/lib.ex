@@ -152,8 +152,20 @@ defmodule Day7 do
     chain(code, rest, out)
   end
 
-  defp stateful_exec([], [], [], input) do
+  defp stateful_exec([], [], _, input) do
     {input, [], []}
+  end
+
+  defp stateful_exec([code | code_stack], [ptr | ptr_stack], nil, input) do
+    case Exec.run(code, [input], ptr) do
+      nil ->
+        nil
+
+      {out, mem, resume} ->
+        {next_out, next_mem, next_resume} = stateful_exec(code_stack, ptr_stack, nil, out)
+
+        {next_out, [mem | next_mem], [resume | next_resume]}
+    end
   end
 
   defp stateful_exec([code | code_stack], [ptr | ptr_stack], [phase | phase_stack], input) do
@@ -174,7 +186,7 @@ defmodule Day7 do
         input
 
       {output, new_codes, new_ptrs} ->
-        feedback_until_nil(new_codes, new_ptrs, phases, output)
+        feedback_until_nil(new_codes, new_ptrs, nil, output)
     end
   end
 
