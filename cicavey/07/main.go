@@ -44,22 +44,18 @@ func opMulFunc(m *intCodeMachine) {
 
 func opInpFunc(m *intCodeMachine) {
 	dstLoc := m.ram[m.ip+1]
-
-	// this is "blocking" waiting for input
-	if len(m.stdin) == 0 {
+	v, ok := m.stdin.pop()
+	if !ok {
 		m.running = false
 		return
 	}
-
-	v := m.stdin[0]
-	m.stdin = m.stdin[1:]
 	m.ram[dstLoc] = v
 	m.ip += 2
 }
 
 func opOutFunc(m *intCodeMachine) {
 	op1 := m.resolve(1)
-	m.stdout = append(m.stdout, op1)
+	m.stdout.push(op1)
 	m.ip += 2
 }
 
@@ -118,6 +114,7 @@ func opCEQFunc(m *intCodeMachine) {
 
 func opEndFunc(m *intCodeMachine) {
 	m.running = false
+	m.halt = true
 	m.ip++
 }
 
@@ -137,10 +134,11 @@ type intCodeMachine struct {
 	rom     []int
 	ram     []int
 	running bool
+	halt    bool
 	ip      int
 	op      int
-	stdin   []int
-	stdout  []int
+	stdin   *pipe
+	stdout  *pipe
 }
 
 func newIntCodeMachine(rom []int, ramSize int) *intCodeMachine {
@@ -148,8 +146,10 @@ func newIntCodeMachine(rom []int, ramSize int) *intCodeMachine {
 		ramSize = len(rom)
 	}
 	m := &intCodeMachine{
-		rom: rom,
-		ram: make([]int, ramSize),
+		rom:    rom,
+		ram:    make([]int, ramSize),
+		stdin:  &pipe{},
+		stdout: &pipe{},
 	}
 	m.reset()
 	return m
@@ -173,7 +173,7 @@ func (m *intCodeMachine) reset() {
 	}
 	copy(m.ram, m.rom)
 	m.ip = 0
-	m.stdout = nil
+	m.stdout.clear()
 }
 
 func (m *intCodeMachine) run() {
@@ -223,60 +223,93 @@ type pipe struct {
 	data []int
 }
 
-func (q *pipe) push(v int) {
-	q.data = append(q.data, v)
+func (p *pipe) push(v ...int) {
+	p.data = append(p.data, v...)
 }
 
-func (q *pipe) pop() (int, bool) {
-	if len(q.data) == 0 {
+func (p *pipe) pop() (int, bool) {
+	if len(p.data) == 0 {
 		return 0, false
 	}
-	v := q.data[0]
-	q.data = q.data[1:]
+	v := p.data[0]
+	p.data = p.data[1:]
 	return v, true
 }
 
-func main() {
-	content, _ := ioutil.ReadFile("input")
+func (p *pipe) clear() {
+	p.data = nil
+}
+
+func (p *pipe) peek() int {
+	return p.data[0]
+}
+
+func loadProgram(file string) []int {
+	content, _ := ioutil.ReadFile(file)
 	opcodeStrs := strings.Split(string(content), ",")
 	rom := make([]int, len(opcodeStrs))
 	for i, s := range opcodeStrs {
 		v, _ := strconv.Atoi(s)
 		rom[i] = v
 	}
+	return rom
+}
 
+func main() {
+	rom := loadProgram("input")
 	m := newIntCodeMachine(rom, 8192)
-	seq := []int{9, 8, 7, 6, 5}
+	seq := []int{0, 0, 0, 0, 0}
 	max := 0
 	Perm([]rune("01234"), func(a []rune) {
 		for i := 0; i < 5; i++ {
 			seq[i] = int(a[i] - '0')
 		}
 
-		m.stdout = []int{0}
+		m.stdout.clear()
+		m.stdout.push(0)
 		for i := 0; i < 5; i++ {
-			m.stdin = []int{seq[i], m.stdout[0]}
+			m.stdin.push(seq[i], m.stdout.peek())
 			m.reset()
 			m.run()
 		}
 
-		if m.stdout[0] > max {
-			max = m.stdout[0]
+		if m.stdout.peek() > max {
+			max = m.stdout.peek()
 		}
 	})
 	fmt.Println(max)
 
-	// var mm []*intCodeMachine
-	// for i := 0; i < 5; i++ {
-	// 	mm = append(mm, newIntCodeMachine(rom, 8192))
-	// }
+	rom = loadProgram("input")
+	max = 0
+	Perm([]rune("56789"), func(a []rune) {
+		for i := 0; i < 5; i++ {
+			seq[i] = int(a[i] - '0')
+		}
 
-	// mm[0].stdout = []int{0}
-	// for i := 0; i < 1; i++ {
-	// 	m.stdin = []int{seq[i], mm[0].stdout[0]}
-	// 	m.reset()
-	// 	m.run()
-	// 	fmt.Println(m.stdout)
-	// }
+		var mm []*intCodeMachine
+		for i := 0; i < 5; i++ {
+			mm = append(mm, newIntCodeMachine(rom, 8192))
+		}
+		for i := 0; i < 5; i++ {
+			mm[(i+1)%5].stdin = mm[i].stdout
+		}
+
+		//seq = []int{9, 7, 8, 5, 6}
+
+		mm[0].stdin.push(seq[0], 0)
+		mm[1].stdin.push(seq[1])
+		mm[2].stdin.push(seq[2])
+		mm[3].stdin.push(seq[3])
+		mm[4].stdin.push(seq[4])
+		for i := 0; !mm[4].halt; {
+			mm[i].run()
+			i = (i + 1) % 5
+		}
+
+		if mm[4].stdout.peek() > max {
+			max = mm[4].stdout.peek()
+		}
+	})
+	fmt.Println(max)
 
 }
