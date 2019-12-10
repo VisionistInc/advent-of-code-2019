@@ -7,7 +7,7 @@ defmodule Input do
     []
   end
 
-  def get do
-    List.to_tuple(to_ints(String.split(File.read!("input.txt"), ",")))
+  def get(filename \\ "input.txt") do
+    List.to_tuple(to_ints(String.split(File.read!(filename), ",")))
   end
 end
