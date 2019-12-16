@@ -35,9 +35,6 @@ class IntCodeMachine(val rom: List<Int>, private var ip: Int = 0) {
     // FIXME this might not work (we might need some logic to check if the last parameter should be in position or not!)
     private fun fromParameterMode(modes: String, num: Int, addressLast: Boolean = true): List<Int> {
 
-        println("modes $modes")
-        println(ram.subList(ip + 1, ip + num + 1) )
-
         val values = modes.reversed().mapIndexed{ idx, mode ->
             when (Character.getNumericValue(mode)) { // just using .toInt() returns the ascii value
                 Parameter.POSITION.mode -> ram[ram[ip + idx + 1]]
@@ -46,11 +43,11 @@ class IntCodeMachine(val rom: List<Int>, private var ip: Int = 0) {
             }
         }.toMutableList()
 
-        for (i in values.size until num - 1) { // num - 1 is excluded
-            values.add(ram[ram[ip + i + 1]]) // get the missing parameters in position mode
-        }
-
         if (values.size < num) {
+            for (i in values.size until num - 1) { // num - 1 is excluded
+                values.add(ram[ram[ip + i + 1]]) // get the missing parameters in position mode
+            }
+
             if (addressLast) {
                 // last is just a dest address, so only return the immediate value
                 values.add(ram[ip + num])
@@ -64,8 +61,6 @@ class IntCodeMachine(val rom: List<Int>, private var ip: Int = 0) {
                 })
             }
         }
-
-        println(values)
 
         // make it immutable
         return values.toList()
@@ -108,14 +103,10 @@ class IntCodeMachine(val rom: List<Int>, private var ip: Int = 0) {
     private fun handleGet(paramModes: String) {
         // TODO will this ever be immediate?
         val output = fromParameterMode(paramModes, 1, false).first()
-//        println(ram.subList(ip, 47))
-//
-//        println(ram.subList(ip, ip + 3))
 
         ip += 2
 
         if (ram[ip] == Intcodes.END.opcode) {
-//            println("we're here... oops")
             diagnosticCode = output
         } else if (output == 0) {
             println(output)
@@ -188,16 +179,9 @@ class IntCodeMachine(val rom: List<Int>, private var ip: Int = 0) {
         // now, run the machine
         while(running) {
 
-//            println(ram)
-//            println(ram.subList(ip, ip + 3))
-
             val inst = ram[ip].toString()
 
             val parameterModes = inst.take(max(0, inst.length - Intcodes.OPCODE_LENGTH))
-
-//            println(inst)
-
-            println("opcode ${inst.takeLast(Intcodes.OPCODE_LENGTH)}")
 
             when (inst.takeLast(Intcodes.OPCODE_LENGTH).toInt()) {
                 Intcodes.ADD.opcode -> handleAdd(parameterModes)
@@ -211,8 +195,6 @@ class IntCodeMachine(val rom: List<Int>, private var ip: Int = 0) {
                 Intcodes.EQL.opcode -> handleEquals(parameterModes)
             }
         }
-
-//        println(ram)
 
         return diagnosticCode
     }
@@ -252,10 +234,6 @@ fun main(args: Array<String>) {
 //    println(IntCodeMachine(input7).run(input=0)) // 999
 //    println(IntCodeMachine(input7).run(input=8)) // 1000
 //    println(IntCodeMachine(input7).run(input=10)) // 1001
-
-
-//    val dum = "1,0,3,3,1005,2,10,5,1,0,4,1,99".split(",").map {it.toInt()}
-//    println(IntCodeMachine(dum).run())
 
     val input = File(args.first()).readText().trim().split(",").map{ it.toInt() }
     println(IntCodeMachine(input).run(input=5))  // input was 1 for part 1
