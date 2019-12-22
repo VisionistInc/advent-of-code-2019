@@ -117,7 +117,6 @@ while(x_rep == 0 or y_rep == 0 or z_rep == 0):
 
 x = x_rep
 y = y_rep
-z = z_rep
 
 while x != y:
     if x < y:
@@ -129,7 +128,6 @@ xy = x
 xy_rep = x
 
 x = x_rep
-y = y_rep
 z = z_rep
 
 while x != z:
